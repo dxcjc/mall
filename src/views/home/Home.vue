@@ -4,114 +4,18 @@
   <nav-bar class="home-nav-bar">
    <h5 slot="center">购物街</h5>
   </nav-bar>
-  <home-swiper :banners="banners"/>
-  <HomeRecommend :recommend="recommend"/>
-  <HomeFeature/>
-  <TabControl :ctitles="['流行', '新款', '精选']" @tabClick="ctClick" />
-  <GoodsList :goods="showGoods"/>
-   <ul>
-   <li>00000</li>
-   <li>00000</li>
-   <li>00000</li>
-   <li>00000</li>
-   <li>00000</li>
-   <li>00000</li>
-   <li>00000</li>
-   <li>00000</li>
-   <li>00000</li>
-   <li>00000</li>
-   <li>00000</li>
-   <li>00000</li>
-   <li>00000</li>
-   <li>00000</li>
-   <li>00000</li>
-   <li>00000</li>
-   <li>00000</li>
-   <li>00000</li>
-   <li>00000</li>
-   <li>00000</li>
-   <li>00000</li>
-   <li>00000</li>
-   <li>00000</li>
-   <li>00000</li>
-   <li>00000</li>
-   <li>00000</li>
-   <li>00000</li>
-   <li>00000</li>
-   <li>00000</li>
-   <li>00000</li>
-   <li>00000</li>
-   <li>00000</li>
-   <li>00000</li>
-   <li>00000</li>
-   <li>00000</li>
-   <li>00000</li>
-   <li>00000</li>
-   <li>00000</li>
-   <li>00000</li>
-   <li>00000</li>
-   <li>00000</li>
-   <li>00000</li>
-   <li>00000</li>
-   <li>00000</li>
-   <li>00000</li>
-   <li>00000</li>
-   <li>00000</li>
-   <li>00000</li>
-   <li>00000</li>
-   <li>00000</li>
-   <li>00000</li>
-   <li>00000</li>
-   <li>00000</li>
-   <li>00000</li>
-   <li>00000</li>
-   <li>00000</li>
-   <li>00000</li>
-   <li>00000</li>
-   <li>00000</li>
-   <li>00000</li>
-   <li>00000</li>
-   <li>00000</li>
-   <li>00000</li>
-   <li>00000</li>
-   <li>00000</li>
-   <li>00000</li>
-   <li>00000</li>
-   <li>00000</li>
-   <li>00000</li>
-   <li>00000</li>
-   <li>00000</li>
-   <li>00000</li>
-   <li>00000</li>
-   <li>00000</li>
-   <li>00000</li>
-   <li>00000</li>
-   <li>00000</li>
-   <li>00000</li>
-   <li>00000</li>
-   <li>00000</li>
-   <li>00000</li>
-   <li>00000</li>
-   <li>00000</li>
-   <li>00000</li>
-   <li>00000</li>
-   <li>00000</li>
-   <li>00000</li>
-   <li>00000</li>
-   <li>00000</li>
-   <li>00000</li>
-   <li>00000</li>
-   <li>00000</li>
-   <li>00000</li>
-   <li>00000</li>
-   <li>00000</li>
-   <li>00000</li>
-   <li>00000</li>
-   <li>00000</li>
-   <li>00000</li>
-   <li>00000</li>
- </ul>
- </div>
+  <Scroller :probe-type="3" ref="scroller" @scroll="scroll" class="home-scroller" :pullUpLoad="true" @pullingUp="pullUpLoad" >
+    <home-swiper :banners="banners"/>
+    <HomeRecommend :recommend="recommend"/>
+    <HomeFeature/>
+    <TabControl :ctitles="['流行', '新款', '精选']" @ctClick="pClick" />
+    <GoodsList :goods="showGoods"/>
+  </Scroller>
+  <BackTop @click.native="backTopClick" v-show="isShowBackTop" />
+  
+</div>
+  
+  
 
 
 
@@ -126,8 +30,12 @@
 
 
   import NavBar from '@/components/common/NavBar/NavBar'
+  import Scroller from '@/components/common/Scroller/Scroller'
+
   import TabControl from '@/components/contents/tabControl/TabControl'
   import GoodsList from '@/components/contents/good/GoodsList'
+  import BackTop from '@/components/contents/BackTop/BackTop'
+ 
 
  
   export default{
@@ -137,8 +45,10 @@
       HomeRecommend,
       HomeFeature,
       NavBar,
+      Scroller,
       TabControl,
-      GoodsList
+      GoodsList,
+      BackTop
       
     },
     data(){
@@ -150,8 +60,8 @@
              new:{page:0, list:[]},
              sell:{page:0, list:[]}
            },
-         currentType:'pop'  
-
+        currentType:'pop',
+        isShowBackTop: false
       }
     },
      computed: {
@@ -166,8 +76,28 @@
       this.getHomeGoodsData('new')
       this.getHomeGoodsData('sell')
     },
+    mounted(){
+      // 
+      const refresh=this.debounce(this.$refs.scroller.refresh,50)
+     this.$bus.$on("imageLoad",()=>{
+       refresh()
+       
+     })
+    },
     methods:{
-      ctClick(index){
+      debounce(func,delay){
+        let timer=null
+        return function(...args){
+        if(timer) clearTimeout(timer)
+        timer=setTimeout(()=>{
+
+          func.apply(this,args)
+        },delay)
+        }
+      },
+
+
+      pClick(index){
          switch (index) {
                   case 0:
                       this.currentType = 'pop'
@@ -184,19 +114,28 @@
         getHomeMultidata().then(res => {
             this.banners = res.data.banner.list;
             this.recommend = res.data.recommend.list;
-      })
-      },getHomeGoodsData(type) {
-                let page = this.goods[type].page + 1
-                getHomeData(type, page).then(res => {
-                    this.goods[type].list.push(...res.data.list)
-                    this.goods[type].page = res.data.page
-                })
-            },
-      
-      
-    
-  
-  }
+        })
+      },
+      getHomeGoodsData(type) {
+        let page = this.goods[type].page + 1
+        getHomeData(type, page).then(res => {
+            this.goods[type].list.push(...res.data.list)
+            this.goods[type].page = res.data.page
+        })
+      },
+      scroll(postion){      
+        this.isShowBackTop= -postion.y>1000;
+        // console.log(this.isShowBackTop);
+      },
+      pullUpLoad(){
+       this.getHomeGoodsData(this.currentType);
+        this.$refs.scroller.finishPullUp()
+      },
+      backTopClick(){
+        // console.log(this.$refs.scroller);
+        this.$refs.scroller.scrollTo(0,0,300)
+      }
+    }
   }
   
 </script>
@@ -217,6 +156,14 @@
     top: 0;
     z-index: 9;
   }
-
+  .home-scroller{
+    /*height:300px;*/
+    overflow: hidden;
+    position: absolute;
+    top: 44px;
+    bottom: 49px;
+    right: 0;
+    left: 0;
+  }
 
 </style>
